@@ -6,6 +6,8 @@ import base64
 import sys, os
 import datetime
 import argparse, configparser
+import sys
+import time
 
 import query
 
@@ -59,6 +61,7 @@ def init_config():
 	arg_parser.add_argument('--issue-template', help="Specify a template file for use with issues.")
 	arg_parser.add_argument('--comment-template', help="Specify a template file for use with comments.")
 	arg_parser.add_argument('--pull-request-template', help="Specify a template file for use with pull requests.")
+	arg_parser.add_argument('-r', '--resume', type=int, help="Resume at X")
 		
 	include_group = arg_parser.add_mutually_exclusive_group(required=True)
 	include_group.add_argument("--all", dest='import_all', action='store_true', help="Import all issues, regardless of state.")
@@ -95,6 +98,11 @@ def init_config():
 	
 	if args.username: config.set('login', 'username', args.username)
 	if args.password: config.set('login', 'password', args.password)
+	
+	if args.resume: 
+		config.set('source', 'resume', args.resume)
+	else:
+		config.set('source', 'resume', 0)
 	
 	if args.source: config.set('source', 'repository', args.source)
 	if args.target: config.set('target', 'repository', args.target)
@@ -358,6 +366,10 @@ def import_issues(issues):
 		# note: id will not be created remotely, used for local dereferencing
 		# note: id is not the same as number
 		new_issue['id'] = issue['id']
+		#print (issue)
+		if(issue['number'] < config.get('source', 'resume')):
+			continue		
+		
 		if issue['state'] == 'open':
 			open_issue_ids.append(issue['id'])
 		elif issue['state'] == 'closed':

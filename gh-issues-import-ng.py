@@ -339,6 +339,53 @@ def patch_issue(which, issue_number, issue_payload):
 	result = send_request(which, 'issues/{number}'.format(number=issue_number), issue_payload, method='PATCH')
 	return result
 
+def get_remaining():
+	which = 'target'
+	username = config.get(which, 'username')
+	password = config.get(which, 'password')
+	full_url = "https://api.github.com/users/%s" % (username)
+	req = urllib.request.Request(full_url, None, method=None)
+	
+	req.add_header("Authorization", b"Basic " + base64.urlsafe_b64encode(username.encode("utf-8") + b":" + password.encode("utf-8")))
+	
+	req.add_header("Content-Type", "application/json")
+	req.add_header("Accept", "application/json")
+	req.add_header("User-Agent", "github-issues-import-ng")
+	
+	try:
+		response = urllib.request.urlopen(req)
+		json_data = response.read()
+		headers = dict(response.info())
+	except urllib.error.HTTPError as error:
+		
+		error_details = error.read();
+		error_details = json.loads(error_details.decode("utf-8"))
+
+		print("DEBUG: '%s' could not execute a webhook request with json. Type is '%s'." % (which, url))
+		if error.code in http_error_messages:
+			sys.exit(http_error_messages[error.code])
+		else:
+			error_message = "ERROR: There was a problem importing the issues.\n%s %s" % (error.code, error.reason)
+			print("DEBUG: full_url '%s'." % (full_url))
+			print (error_details)
+			if 'message' in error_details:
+				error_message += "\nDETAILS: " + error_details['message']
+			sys.exit(error_message)
+	except urllib.error.URLError as error:
+			print("Encountered a fatal error requesting URL {0}".format(req.get_full_url()), file=sys.stderr)
+			sys.exit(error)
+	
+	return int(headers['X-RateLimit-Remaining'])
+	
+def sleep_rate_limiting():
+	remaining = 0
+	while (remaining == 0):
+		remaining = get_remaining()
+		print("remaining: " + str(remaining))
+		
+	if (remaining == 0):
+		time.sleep(5)
+
 # Will only import milestones and issues that are in use by the imported issues, and do not exist in the target repository
 def import_issues(issues):
 
@@ -465,6 +512,8 @@ def import_issues(issues):
 			del issue['label_objects']
 		
 		sys.stdout.flush()
+		sleep_rate_limiting()
+		
 		result_issue = send_request('target', "issues", issue)
 		print("Successfully created issue '%s'" % result_issue['title'])
 		if issue['id'] in closed_issue_ids:

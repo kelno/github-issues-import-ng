@@ -420,15 +420,7 @@ def import_issues(issues):
 				continue # skip this (pull request) issue
 		else: # regular issue, not a pull request
 			new_issue['body'] = format_issue(template_data)
-
-		# note: id will not be created remotely, used for local dereferencing
-		# note: id is not the same as number
-		new_issue['id'] = issue['id']
-		if issue['state'] == 'open':
-			open_issue_ids.append(issue['id'])
-		elif issue['state'] == 'closed':
-			closed_issue_ids.append(issue['id'])
-
+  
 		new_issues.append(new_issue)
 	
 	state.current = state.IMPORT_CONFIRMATION

@@ -240,10 +240,15 @@ def send_request(which, url, post_data=None, method=None):
 		error_details = json.loads(error_details.decode("utf-8"))
 
 		print("DEBUG: '%s' could not execute a webhook request with json. Type is '%s'." % (which, url))
+		print("fullurl: '%s'" % (full_url))
 		if error.code in http_error_messages:
+			print("code: '%i'" % (error.code))
+			print (error_details)
 			sys.exit(http_error_messages[error.code])
 		else:
 			error_message = "ERROR: There was a problem importing the issues.\n%s %s" % (error.code, error.reason)
+			print("DEBUG: full_url '%s'." % (full_url))
+			print (error_details)
 			if 'message' in error_details:
 				error_message += "\nDETAILS: " + error_details['message']
 			sys.exit(error_message)
@@ -459,6 +464,7 @@ def import_issues(issues):
 			issue['labels'] = issue_labels
 			del issue['label_objects']
 		
+		sys.stdout.flush()
 		result_issue = send_request('target', "issues", issue)
 		print("Successfully created issue '%s'" % result_issue['title'])
 		if issue['id'] in closed_issue_ids:

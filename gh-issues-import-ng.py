@@ -353,7 +353,7 @@ def import_issues(issues):
 	known_labels = get_labels('target')
 	def get_label_by_name(name):
 		for label in known_labels:
-			if label['name'] == name : return label
+			if label['name'].lower() == name.lower() : return label
 		return None
 	
 	new_issues = []
